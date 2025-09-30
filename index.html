@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>CSV Data Visualization</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
@@ -61,34 +61,18 @@
         .chart-container {
             background-color: white;
             border-radius: 8px;
-            padding: 20px;
+            padding: 10px 10px 10px 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin-bottom: 20px;
+            /* Make chart bigger on small screens */
+            width: 100%;
+            max-width: 100%;
+            height: 400px;
         }
-        .stats {
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            margin-top: 20px;
-        }
-        .stat-card {
-            background-color: white;
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            min-width: 150px;
-            text-align: center;
-            margin: 10px;
-        }
-        .stat-value {
-            font-size: 24px;
-            font-weight: bold;
-            color: #2196F3;
-        }
-        .stat-label {
-            font-size: 14px;
-            color: #666;
-            margin-top: 5px;
+        canvas {
+            /* Make canvas fill its container */
+            width: 100% !important;
+            height: 100% !important;
         }
         #loading {
             text-align: center;
@@ -112,6 +96,20 @@
             border-radius: 6px;
             background-color: white;
             cursor: pointer;
+        }
+        @media (max-width: 600px) {
+            .chart-container {
+                height: 300px;
+                padding: 5px 5px 5px 5px;
+            }
+            button {
+                padding: 8px 16px;
+                font-size: 14px;
+            }
+            .date-display {
+                font-size: 18px;
+                margin: 5px;
+            }
         }
     </style>
 </head>
@@ -138,8 +136,6 @@
 <div class="chart-container" style="display: none;" id="chartContainer">
     <canvas id="myChart"></canvas>
 </div>
-
-<div class="stats" id="stats" style="display: none;"></div>
 
 <script>
     const CSV_FILE_PATH = 'freegroupcounter_values.csv';
@@ -201,38 +197,6 @@
         chart.data.datasets[0].data = dayData.map(d => d.greenDay);
         chart.data.datasets[1].data = dayData.map(d => d.campus);
         chart.update();
-
-        // Update statistics
-        updateStats(dayData);
-    }
-
-    function updateStats(dayData) {
-        const greenDayValues = dayData.map(d => d.greenDay);
-        const campusValues = dayData.map(d => d.campus);
-
-        const stats = [
-            { label: 'Latest GreenDay', value: greenDayValues[greenDayValues.length - 1] },
-            { label: 'Latest Campus', value: campusValues[campusValues.length - 1] },
-            { label: 'Avg GreenDay', value: Math.round(greenDayValues.reduce((a, b) => a + b, 0) / greenDayValues.length) },
-            { label: 'Avg Campus', value: Math.round(campusValues.reduce((a, b) => a + b, 0) / campusValues.length) },
-            { label: 'Max GreenDay', value: Math.max(...greenDayValues) },
-            { label: 'Max Campus', value: Math.max(...campusValues) },
-            { label: 'Min GreenDay', value: Math.min(...greenDayValues) },
-            { label: 'Min Campus', value: Math.min(...campusValues) },
-            { label: 'Records Today', value: dayData.length }
-        ];
-
-        const statsContainer = document.getElementById('stats');
-        statsContainer.innerHTML = '';
-        stats.forEach(stat => {
-            const card = document.createElement('div');
-            card.className = 'stat-card';
-            card.innerHTML = `
-                <div class="stat-value">${stat.value}</div>
-                <div class="stat-label">${stat.label}</div>
-            `;
-            statsContainer.appendChild(card);
-        });
     }
 
     async function loadAndVisualizeData() {
@@ -277,7 +241,6 @@
             document.getElementById('loading').style.display = 'none';
             document.getElementById('dateNav').style.display = 'flex';
             document.getElementById('chartContainer').style.display = 'block';
-            document.getElementById('stats').style.display = 'flex';
 
             // Create the chart
             const ctx = document.getElementById('myChart').getContext('2d');
@@ -293,8 +256,8 @@
                             backgroundColor: 'rgba(76, 175, 80, 0.1)',
                             tension: 0.1,
                             fill: true,
-                            pointRadius: 4,
-                            pointHoverRadius: 6
+                            pointRadius: 6,
+                            pointHoverRadius: 8
                         },
                         {
                             label: 'Campus',
@@ -303,14 +266,14 @@
                             backgroundColor: 'rgba(33, 150, 243, 0.1)',
                             tension: 0.1,
                             fill: true,
-                            pointRadius: 4,
-                            pointHoverRadius: 6
+                            pointRadius: 6,
+                            pointHoverRadius: 8
                         }
                     ]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: true,
+                    maintainAspectRatio: false,
                     plugins: {
                         title: {
                             display: true,
