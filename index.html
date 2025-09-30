@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CSV Data Visualization</title>
+    <title>Parking stats</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <style>
@@ -97,6 +97,22 @@
             background-color: white;
             cursor: pointer;
         }
+        .stats-parking {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 0 auto 24px auto;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 400px;
+            font-size: 16px;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .stat-label {
+            font-weight: bold;
+        }
         @media (max-width: 600px) {
             .chart-container {
                 height: 300px;
@@ -110,11 +126,17 @@
                 font-size: 18px;
                 margin: 5px;
             }
+            .stats-parking {
+                max-width: 100%;
+                flex-direction: column;
+                font-size: 14px;
+                align-items: flex-start;
+            }
         }
     </style>
 </head>
 <body>
-<h1>Daily Data Monitoring</h1>
+<h1>Parking data monitoring</h1>
 <div id="loading">Loading data...</div>
 <div id="error" class="error" style="display: none;"></div>
 
@@ -130,6 +152,17 @@
         <select id="daySelector" onchange="selectDay()">
             <option value="">Select a day...</option>
         </select>
+    </div>
+</div>
+
+<div class="stats-parking" id="parkingStats" style="display:none;">
+    <div>
+        <span class="stat-label">Parking Full Time</span>
+        <span id="timeParkingFull">N/A</span>
+    </div>
+    <div>
+        <span class="stat-label">Parking Free Starts</span>
+        <span id="timeParkingFree">N/A</span>
     </div>
 </div>
 
@@ -150,6 +183,11 @@
         return date.toLocaleDateString('en-US', options);
     }
 
+    function formatTime(date) {
+        const options = { hour: '2-digit', minute: '2-digit' };
+        return date.toLocaleTimeString('en-US', options);
+    }
+
     function getDateKey(date) {
         return date.toISOString().split('T')[0];
     }
@@ -164,6 +202,33 @@
             grouped[dateKey].push(row);
         });
         return grouped;
+    }
+
+    // Find the first time both greenDay and campus are 0 between 7-9 AM
+    function findParkingFullTime(dayData) {
+        for (const row of dayData) {
+            const hour = row.timestamp.getHours();
+            if (hour >= 7 && hour < 9) {
+                if (row.greenDay === 0 && row.campus === 0) {
+                    return row.timestamp;
+                }
+            }
+        }
+        return null;
+    }
+
+    // Find first time after 11 AM when sum of spots is 4 or more
+    function findParkingFreeTime(dayData, parkingFullTimestamp) {
+        // Changed to start from 11 AM instead of parkingFullTimestamp
+        for (const row of dayData) {
+            const hour = row.timestamp.getHours();
+            if (hour >= 11) {
+                if ((row.greenDay + row.campus) >= 4) {
+                    return row.timestamp;
+                }
+            }
+        }
+        return null;
     }
 
     function changeDay(direction) {
@@ -197,6 +262,14 @@
         chart.data.datasets[0].data = dayData.map(d => d.greenDay);
         chart.data.datasets[1].data = dayData.map(d => d.campus);
         chart.update();
+
+        // Update parking stats
+        const parkingFullTime = findParkingFullTime(dayData);
+        const parkingFreeTime = findParkingFreeTime(dayData, parkingFullTime);
+
+        document.getElementById('timeParkingFull').textContent = parkingFullTime ? formatTime(parkingFullTime) : 'N/A';
+        document.getElementById('timeParkingFree').textContent = parkingFreeTime ? formatTime(parkingFreeTime) : 'N/A';
+        document.getElementById('parkingStats').style.display = 'flex';
     }
 
     async function loadAndVisualizeData() {
@@ -256,8 +329,8 @@
                             backgroundColor: 'rgba(76, 175, 80, 0.1)',
                             tension: 0.1,
                             fill: true,
-                            pointRadius: 6,
-                            pointHoverRadius: 8
+                            pointRadius: 2,
+                            pointHoverRadius: 4
                         },
                         {
                             label: 'Campus',
@@ -266,8 +339,8 @@
                             backgroundColor: 'rgba(33, 150, 243, 0.1)',
                             tension: 0.1,
                             fill: true,
-                            pointRadius: 6,
-                            pointHoverRadius: 8
+                            pointRadius: 2,
+                            pointHoverRadius: 4
                         }
                     ]
                 },
@@ -316,9 +389,7 @@
                 }
             });
 
-            // Load initial day
             updateChart();
-
         } catch (error) {
             console.error('Error loading data:', error);
             document.getElementById('loading').style.display = 'none';
@@ -328,7 +399,6 @@
         }
     }
 
-    // Load data when page loads
     loadAndVisualizeData();
 </script>
 </body>
